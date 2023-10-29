@@ -12,5 +12,3 @@ def convert_to_csv(out_dir):
              index=False))
 
 convert_to_csv(Path('../data/predictors'))
-
-convert_to_csv(Path('../data/portfolios'))
