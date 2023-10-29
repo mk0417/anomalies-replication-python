@@ -16,7 +16,7 @@ Pricing](https://github.com/OpenSourceAP/CrossSection).
   - For R users, to read **parquet** data, you can install **arrow**
   package `install.packages("arrow")`
   - For Stata users, to read **parquet** data, see this guidance:
-    https://github.com/mcaceresb/stata-parquet#examples
+    https://github.com/mcaceresb/stata-parquet
 - 96 different ways to compute portfolio returns ([see example in step
   3 of How to use](#3.-Portfolio-returns))
 - Easy to update firm characteristics and portfolio returns
@@ -79,8 +79,8 @@ git clone https://github.com/mk0417/anomalies-replication-python.git
 > Data is extracted from WRDS cloud and you need to
 > change the *WRDS username*
 > - Open the file of `functions.py` under `code` directiry
-> - Move to line 32
-> - Replace <u><i>change to your> wrds username</i></u> with your
+> - Move to line 33
+> - Replace *'change to your wrds username'* with your
 > WRDS username (keep the quotation mark)
 
 ### 1. Download data 

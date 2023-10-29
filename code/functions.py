@@ -30,7 +30,7 @@ def wrds_connect():
         conn = wrds.Connection(wrds_username=wrds_username, autoconnect=False)
     except:
         conn = wrds.Connection(
-            wrds_username='change to your wrds unsername', autoconnect=False)
+            wrds_username='change to your wrds username', autoconnect=False)
 
     return conn
 
