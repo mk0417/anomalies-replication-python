@@ -24,7 +24,7 @@ def predictor_bm_dec():
             month=lambda x: x['time_avail_m'].dt.month))
 
     df.loc[df['month']!=12, 'me'] = np.nan
-    df['me_dec'] = df.groupby(['permno', 'year'])['me'].transform(min)
+    df['me_dec'] = df.groupby(['permno', 'year'])['me'].transform('min')
 
     df['txditc'] = df['txditc'].fillna(0)
     df['ps'] = df['pstk']

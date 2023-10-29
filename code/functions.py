@@ -29,7 +29,8 @@ def wrds_connect():
 
         conn = wrds.Connection(wrds_username=wrds_username, autoconnect=False)
     except:
-        conn = wrds.Connection(autoconnect=False)
+        conn = wrds.Connection(
+            wrds_username='change to your wrds unsername', autoconnect=False)
 
     return conn
 
@@ -194,10 +195,10 @@ def port_group_cs(data, n_port, bp, time_var, var):
     port_labels = ['p'+str(i+1) for i in range(n_port)]
     df.loc[df[var]<=df[pctls_labels[0]], 'port'] = port_labels[0]
     for i, j, k in zip(pctls_labels[:-1], pctls_labels[1:], port_labels[1:-1]):
-        df['port'] = np.where(
-            (df[var]>df[i]) & (df[var]<=df[j]), k, df['port'])
+        df['port'] = np.where((df[var]>df[i]) & (df[var]<=df[j]), k, df['port'])
 
     df.loc[df[var]>df[pctls_labels[-1]], 'port'] = port_labels[-1]
+    df.loc[df['port']=='na', 'port'] = np.nan
     df = df[list(df.columns[~df.columns.str.contains('pctls')])]
     return df
 

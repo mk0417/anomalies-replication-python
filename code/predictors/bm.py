@@ -26,7 +26,7 @@ def predictor_bm():
     df.loc[df['time_lag6']!=(df['datadate']+pd.offsets.MonthEnd(0)),
            'me_lag6'] = np.nan
     df = df.sort_values(['permno', 'time_avail_m'], ignore_index=True)
-    df['me_lag6'] = df.groupby('permno')['me_lag6'].fillna(method='ffill')
+    df['me_lag6'] = df.groupby('permno')['me_lag6'].ffill()
     df['bm'] = df['ceqt'] / df['me_lag6']
     df.loc[df['bm']<=0, 'bm'] = np.nan
     df['bm'] = np.log(df['bm'])

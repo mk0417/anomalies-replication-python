@@ -18,6 +18,7 @@ def predicor_comp_equ_iss():
         .assign(
             tmp_me=lambda x: x['me']/x['me_lag60'],
             tmp=lambda x: x.groupby(['permno'])['permno'].cumcount()+1))
+    df['tmp'] = df['tmp'].astype(float)
     df.loc[df['tmp']>1, 'tmp'] = 1 + df['ret']
     df.loc[df['tmp_me']<=0, 'tmp_me'] = np.nan
     df = (

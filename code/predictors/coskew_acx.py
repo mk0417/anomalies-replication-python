@@ -12,8 +12,7 @@ def coskew_12month(data, month):
     df.loc[df['time_d'].dt.month==month, 'time_avail_m'] = (
         df['time_d'] + pd.offsets.MonthEnd(0))
     df = df.sort_values(['permno', 'time_d'], ignore_index=True)
-    df['time_avail_m'] = (
-        df.groupby('permno')['time_avail_m'].fillna(method='bfill'))
+    df['time_avail_m'] = df.groupby('permno')['time_avail_m'].bfill()
     df = df.query('time_avail_m==time_avail_m').copy()
     df['e_ret'] = df.groupby(['permno', 'time_avail_m'])['ret'].transform('mean')
     df['e_mkt'] = df.groupby(['permno', 'time_avail_m'])['mkt'].transform('mean')

@@ -74,9 +74,7 @@ def predictor_ann_ret():
         .drop(columns='permno')
         .reset_index()
         .sort_values(['permno', 'time_avail_m'], ignore_index=True)
-        .assign(
-            ann_ret=lambda x:
-            x.groupby('permno')['ann_ret'].fillna(method='ffill', limit=6))
+        .assign(ann_ret=lambda x: x.groupby('permno')['ann_ret'].ffill(limit=6))
         .pipe(predictor_out_clean, 'ann_ret'))
 
     df.to_parquet(predictors_dir/'ann_ret.parquet.gzip', compression='gzip')

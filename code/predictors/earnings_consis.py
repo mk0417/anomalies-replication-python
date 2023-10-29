@@ -22,15 +22,13 @@ def predictor_earnings_consis():
             (x['epspx']-x['epspx_lag12'])
             /(0.5*(x['epspx_lag12'].abs()+x['epspx_lag24'].abs()))))
 
+    df.loc[(df['epspx_lag12']==0) & (df['epspx_lag24']==0), 'tmp'] = np.nan
     for i in [12, 24, 36, 48]:
         df = df.pipe(
             shift_var_month, 'permno', 'time_avail_m',
             'tmp', 'tmp_lag'+str(i), i)
 
-    df = (
-        df.assign(
-            earnings_consis=lambda x:
-            x.filter(like='tmp').mean(axis=1)))
+    df = df.assign(earnings_consis=lambda x: x.filter(like='tmp').mean(axis=1))
     df['earnings_consis'] = np.where(
         ((df['epspx']/df['epspx_lag12']).abs()>6)
         | ((df['tmp']>0) & (df['tmp_lag12']<0))
@@ -42,3 +40,4 @@ def predictor_earnings_consis():
         predictors_dir/'earnings_consis.parquet.gzip', compression='gzip')
 
 predictor_earnings_consis()
+
