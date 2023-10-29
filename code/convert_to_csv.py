@@ -11,6 +11,6 @@ def convert_to_csv(out_dir):
              i.parent/'csv'/str(i.name).replace('parquet.gzip', 'csv'),
              index=False))
 
-convert_to_csv(predictor_dir)
+convert_to_csv(Path('../data/predictors'))
 
-convert_to_csv(port_dir)
+convert_to_csv(Path('../data/portfolios'))
