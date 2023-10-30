@@ -94,7 +94,7 @@ sh run_download.sh
 ```
 
 > [!IMPORTANT]
-> - A prompt will appear and you nedd to type your WRDS credentials 
+> - A prompt will appear and you need to type your WRDS credentials 
 > - Answer **y** in the prompt to create .pgpass file
 
 This will download all required datasets. A folder named
