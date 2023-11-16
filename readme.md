@@ -57,6 +57,7 @@ in parentheses*).
 - statsmodels (0.14.0)
 - joblib (1.3.2)
 - pandarallel (1.6.5)
+- numba (0.58.1)
 
 ### 0_b. Clone or downlaod the repo
 
