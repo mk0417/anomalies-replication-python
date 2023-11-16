@@ -24,7 +24,7 @@ def predictor_firm_age_mom():
             'ret', 'ret_lag'+str(i), i)
 
     df['firm_age_mom'] = (1+df.filter(like='_lag')).prod(1, skipna=False) - 1
-    df.loc[(df['prc'].abs()<5) | (df['tmp']<12), 'firm_age_mom'] = np.nan
+    df.loc[(df['prc'].abs()<5) & (df['tmp']<12), 'firm_age_mom'] = np.nan
     df = (
         df.pipe(port_group_cs, 5, 'all', 'time_avail_m', 'tmp')
         .assign(port=lambda x: (x['port'].str[1:]).astype(float))

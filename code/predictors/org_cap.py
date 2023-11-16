@@ -1,6 +1,7 @@
 import sys
 sys.path.insert(0, '../')
 from functions import *
+from pandarallel import pandarallel
 
 
 # ---------------
@@ -10,8 +11,17 @@ from functions import *
 # Organizational capital
 # org_cap
 # ---------------
+def rec_lag(data):
+    df = data.sort_index().copy()
+    idx = list(df.index)
+    for i in idx[12:]:
+        df.loc[i, 'org_cap_noadj'] =  (
+            0.85 * df.loc[i-12, 'org_cap_noadj'] + df.loc[i, 'xsga'])
+
+    return df
+
 @print_log
-def predictor_org_cap():
+def predictor_org_cap(ncpu):
     df = (
         pd.read_parquet(
             download_dir/'signal_master_table.parquet.gzip',
@@ -35,11 +45,8 @@ def predictor_org_cap():
         .assign(xsga=lambda x: x['xsga']/x['gnp_defl']))
 
     df.loc[df['n']<=12, 'org_cap_noadj'] = 4 * df['xsga']
-    df = df.pipe(
-        shift_var_month, 'permno', 'time_avail_m',
-        'org_cap_noadj', 'org_cap_noadj_lag12', 12)
-    df.loc[df['n']>12, 'org_cap_noadj'] = (
-        0.85 * df['org_cap_noadj_lag12'] + df['xsga'])
+    pandarallel.initialize(nb_workers=ncpu)
+    df = df.groupby('permno').parallel_apply(rec_lag).reset_index(drop=True)
     df['org_cap_noadj'] = df['org_cap_noadj'] / df['at']
     df.loc[df['org_cap_noadj']==0, 'org_cap_noadj'] = np.nan
 
@@ -74,4 +81,4 @@ def predictor_org_cap():
         predictors_dir/'org_cap_noadj.parquet.gzip', compression='gzip')
     df_adj.to_parquet(predictors_dir/'org_cap.parquet.gzip', compression='gzip')
 
-predictor_org_cap()
+predictor_org_cap(6)
