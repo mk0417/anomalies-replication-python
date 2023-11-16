@@ -1,8 +1,6 @@
 import sys
 sys.path.insert(0, '../')
 from functions import *
-import scipy as sp
-from pandarallel import pandarallel
 
 
 # ---------------
@@ -15,56 +13,86 @@ from pandarallel import pandarallel
 # Skewness of daily idiosyncratic returns (3F model)
 # return_skew_ff3
 # ---------------
-def ols_reg(data):
-    # I experiment several linear regression algorithms
-    # scipy seems to be slightly faster
-    # https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html
-    # https://github.com/scikit-learn/scikit-learn/issues/13923
-    X = data[['mktrf', 'smb', 'hml']].values
-    X = np.c_[np.ones(X.shape[0]), X]
-    y = data['ret'].values
-    # est = sp.linalg.lstsq(X, y, check_finite=False, lapack_driver='gelsy')[0]
-    est = sp.sparse.linalg.lsqr(X, y)[0]
-    return pd.Series(est)
+@njit
+def ols_nb(data):
+    k = data.shape[1] 
+    # Find non-missing values
+    notna_mask = ~np.isnan(data[:, 0])
+    for i in range(1, k): 
+        notna_mask = notna_mask & (~np.isnan(data[:, i]))
 
-def ff3_coef(data, ncpu, inc):
-    pandarallel.initialize(nb_workers=ncpu)
-    permno_list = list(data['permno'].unique())
-    est_list = []
-    for i in range(0, len(permno_list), inc):
-        tmp_list = permno_list[i:i+inc]
-        tmp = (
-            data.query('permno==@tmp_list')
-            .groupby(['permno', 'time_avail_m']).parallel_apply(ols_reg))
-        est_list.append(tmp)
+    # Dependent variable
+    y = data[notna_mask, 0]
+    # Independent variables
+    X = data[notna_mask, 1:]
+    # Number of observations
+    n = y.shape[0]
+    # Run regression if at least 15 daily return per stock per month
+    if n >= 15: 
+        # Add constant
+        X = np.column_stack((np.ones(n), X))
+        return np.linalg.inv(X.T@X) @ X.T @ y
+    else:
+        # There are k coefficients (constant + k-1 independent variables)
+        return np.array([np.nan]*k)
 
-    est = pd.concat(est_list)
-    return est
+@njit
+def group_ols_nb_est(data):
+    # We run regression in each group, so get number of groups first
+    # It is the last group ID + 1
+    n_groups = int(data[-1, 0]) + 1
+    # Total number of observations (all groups)
+    n_rows = data.shape[0] 
+    # Results list
+    res = []
+    idx = 0
+    for i in range(n_groups):
+        idxend = idx + 1 
+        # The while loop will store the first index for next group 
+        # It is same group if group ID equals to previous group ID
+        while idxend < n_rows and data[idxend-1, 0] == data[idxend, 0]:
+            idxend += 1
+
+        # Run regression in each group
+        tmp = ols_nb(data[idx:idxend, 1:])
+        # Append group ID and coefficients for all groups
+        res.append(np.hstack((np.array([i]), tmp)))
+        # Update start index for each group
+        idx = idxend
+
+    return res
 
 @print_log
-def predictor_idio_vol_ff3(ncpu, inc):
+def predictor_idio_vol_ff3():
     df_d = pd.read_parquet(
         download_dir/'crsp_daily.parquet.gzip',
         columns=['permno', 'time_d', 'ret'])
     df_ff = pd.read_parquet(
         download_dir/'ff_daily.parquet.gzip',
         columns=['time_d', 'mktrf', 'smb', 'hml', 'rf'])
-
     # More than 100 millions obs
     df = db.sql("""
             select a.permno, last_day(a.time_d) as time_avail_m, a.time_d,
                 a.ret-b.rf as ret, b.mktrf, b.smb, b.hml
             from df_d a join df_ff b
             on a.time_d=b.time_d
-            where ret not null
+            order by permno, time_avail_m, a.time_d
         """).df()
+    df['gid'] = df.groupby(['permno', 'time_avail_m']).ngroup()
 
-    df['n'] = df.groupby(['permno', 'time_avail_m'])['ret'].transform('count')
-    df = df.query('n>=15')
-
-    df_ff3 = ff3_coef(df, ncpu, inc).reset_index()
-    df_ff3.columns = ['permno', 'time_avail_m',
-                      'const', 'b_mkt', 'b_smb', 'b_hml']
+    x_vars = ['mktrf', 'smb', 'hml']
+    est_array = group_ols_nb_est(df[['gid', 'ret']+x_vars].to_numpy())
+    col_names = ['gid', 'const'] + ['b_'+i for i in x_vars]
+    est = (
+        pd.DataFrame([i for i in est_array], columns=col_names)
+        .astype({'gid': int}))
+    df_ff3 = (
+        df.drop_duplicates(['permno', 'time_avail_m'])
+        .loc[:, ['permno', 'time_avail_m', 'gid']]
+        .merge(est, how='inner', on='gid')
+        .dropna()
+        .drop(columns='gid')
+        .sort_values(['permno', 'time_avail_m'], ignore_index=True))
 
     df = db.sql("""
         select permno, time_avail_m, stddev_samp(ret) as realized_vol,
@@ -72,7 +100,7 @@ def predictor_idio_vol_ff3(ncpu, inc):
             skewness(resid) as return_skew_ff3
         from
         (select a.permno, a.time_avail_m, a.ret,
-            a.ret-(b.const+b.b_mkt*a.mktrf+b.b_smb*a.smb+b.b_hml*a.hml) as resid
+        a.ret-(b.const+b.b_mktrf*a.mktrf+b.b_smb*a.smb+b.b_hml*a.hml) as resid
         from df a join df_ff3 b
         on a.permno=b.permno and a.time_avail_m=b.time_avail_m)
         group by permno, time_avail_m
@@ -90,4 +118,4 @@ def predictor_idio_vol_ff3(ncpu, inc):
     df3.to_parquet(
         predictors_dir/'return_skew_ff3.parquet.gzip', compression='gzip')
 
-predictor_idio_vol_ff3(6, 1000)
+predictor_idio_vol_ff3()

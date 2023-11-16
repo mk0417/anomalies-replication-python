@@ -9,6 +9,7 @@ from datetime import datetime
 import statsmodels.api as sm
 from statsmodels.regression.rolling import RollingOLS
 from joblib import Parallel, delayed
+from numba import njit
 import time
 
 
@@ -141,8 +142,9 @@ def port_master_data(predictor, price_f=None, exchange_f=None, exfin_f=False):
             ret=lambda x: x['ret']*100)
         .merge(
             # Predictor data
+            #  REVIEW 2023-11-08: I changed right join to left join
             pd.read_parquet(predictors_dir/(predictor+'.parquet.gzip')),
-            how='right', on=['permno', 'time_avail_m'])
+            how='left', on=['permno', 'time_avail_m'])
         # Get lagged information (predictor info on portfolio formation date)
         .pipe(shift_var_month, 'permno', 'time_avail_m',
               'me', 'me_lag', 1)
