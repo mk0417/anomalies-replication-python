@@ -58,7 +58,7 @@ def port_master_data_nodlst(
         .sort_values(['permno', 'time_avail_m'], ignore_index=True))
     return df
 
-def port_monthly_loop_predictors(
+def port_monthly_loop_predictors_nodlst(
         n_port, weight, bp, out_dir,
         price_f=None, exchange_f=None, exfin_f=False):
     if not os.path.exists(port_dir/out_dir):
@@ -76,34 +76,34 @@ def port_monthly_loop_predictors(
         df.to_csv(port_dir/out_dir/(i+'.csv'), index=False)
 
 @print_log
-def run_port_monthly():
+def run_port_monthly_nodlst():
     for i in ['ew', 'vw']:
         for j in ['all', 'nyse']:
             for k in [5, 10]:
                 print(f'{i}-{j}-{k} ...')
                 # no price, exchange and industry filter
-                port_monthly_loop_predictors(
+                port_monthly_loop_predictors_nodlst(
                     k, i, j, 'nodlst_'+i+'_'+j+'_port'+str(k))
                 # exclude NASDAQ
-                port_monthly_loop_predictors(
+                port_monthly_loop_predictors_nodlst(
                     k, i, j, 'nodlst_'+i+'_'+j+'_port'+str(k)+'_ex_nasdaq',
                     exchange_f=[1, 2])
                 # exclude financial industry
-                port_monthly_loop_predictors(
+                port_monthly_loop_predictors_nodlst(
                     k, i, j, 'nodlst_'+i+'_'+j+'_port'+str(k)+'_ex_fin',
                     exfin_f=True)
                 # price>=5
-                port_monthly_loop_predictors(
+                port_monthly_loop_predictors_nodlst(
                     k, i, j, 'nodlst_'+i+'_'+j+'_port'+str(k)+'_price5',
                     price_f=5)
                 # price>=5 and exclude NASDAQ
-                port_monthly_loop_predictors(
+                port_monthly_loop_predictors_nodlst(
                     k, i, j,
                     'nodlst_'+i+'_'+j+'_port'+str(k)+'_price5_ex_nasdaq',
                     price_f=5, exchange_f=[1, 2])
                 # price>=5 and exclude financial industry
-                port_monthly_loop_predictors(
+                port_monthly_loop_predictors_nodlst(
                     k, i, j, 'nodlst_'+i+'_'+j+'_port'+str(k)+'_price5_ex_fin',
                     price_f=5, exfin_f=True)
 
-run_port_monthly()
+run_port_monthly_nodlst()

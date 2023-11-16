@@ -2,6 +2,7 @@ import sys
 sys.path.insert(0, '../')
 from functions import *
 
+
 # If need to run a single predictor
 def port_monthly_single_predictor(
         signal, n_port, weight, bp, out_dir,
